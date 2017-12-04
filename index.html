@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+            <meta name="viewport" content="width=device-width, initial-scale=1">  
+        <title>REST API JSON Comparator</title>
+        
+        <link rel="stylesheet" href="assets/css/bootstrap.css">
+
+        <script src="assets/js/jquery/jquery.js"></script>
+        <script src="assets/js/bootstrap/bootstrap.js"></script>
+        <script src="assets/json-compare.js"></script>
+        <script type="text/javascript">
+            var comparator = new JsonComparator();
+            $(document).ready(function(){
+                hideAllMessage();
+                hideJsonErrors();
+            });
+
+            function compare() {
+                hideAllMessage();
+                hideJsonErrors();
+                let lhsUrl = jQuery("#lhsUrl").val();
+                let rhsUrl = jQuery("#rhsUrl").val();
+
+                if(lhsUrl != '' && rhsUrl != '') {
+                    getData(lhsUrl, getLhsHeaders(), rhsUrl, getRhsHeaders());
+                } else {
+                    if(jQuery("#lhsOutput").val() != '' && jQuery("#rhsOutput").val() != '') {
+                        compareOutput();
+                    } else {
+                        showWarningMessage('No Data to compare');
+                    }
+                }
+            }
+
+            
+            function appendHeader(whichone) {
+                let headers = this.getHeaders(whichone);
+                let count = Object.getOwnPropertyNames(headers).length;
+                count ++;
+                jQuery("#" + whichone + "headers").append('<li id="' + whichone + 'header' + count + '"><input type="text" name="' + whichone + 'headername' + count + '" id="' + whichone + 'headername' + count + '" value="header' + count + '"> : <input type="text" name="' + whichone + 'headervalue' + count + '" id="' + whichone + 'headervalue' + count + '" value="value' + count + '"></li>');
+                console.log("Added header element " + "#" + whichone + "header" + count);
+            }
+
+            function removeHeader(type) {
+                let headers = this.getHeaders(type);
+                let count = Object.getOwnPropertyNames(headers).length;
+                jQuery("#" + type + "header" + count).remove();
+            }
+
+            function getLhsHeaders() {
+                return this.getHeaders('rhs');
+            }
+
+            function getRhsHeaders() {
+                return this.getHeaders('rhs');
+            }
+
+            function getHeaders(prefix) {
+                let count = 1;
+                let headers = {};
+                let nametextobj = jQuery.find("#" + prefix + "headername" + count)[0];
+                let valuetextobj = jQuery.find("#" + prefix + "headervalue" + count)[0];
+                while(nametextobj !== undefined &&  valuetextobj !== undefined) {
+                    headers[jQuery(nametextobj).val()] = jQuery(valuetextobj).val();
+                    count++;
+                    nametextobj = jQuery.find("#" + prefix + "headername" + count)[0];
+                    valuetextobj = jQuery.find("#" + prefix + "headervalue" + count)[0];                    
+                }
+                console.log(headers);
+                return headers;
+            }
+
+            function getData(lhsUrl, lhsHeaders, rhsUrl, rhsHeaders) {
+                    jQuery.ajax({
+                        url: lhsUrl, 
+                        headers: lhsHeaders,
+                        method: 'GET',
+                        crossDomain: true,
+                        dataType: 'json'
+                    }).done(function(data) {
+                        jQuery("#lhsOutput").val(JSON.stringify(data));
+                        jQuery.ajax({
+                            method: 'GET',
+                            url: rhsUrl, 
+                            headers: rhsHeaders,
+                            crossDomain: true,
+                            dataType: 'json'
+                        }).done(function(data) {
+                            jQuery("#rhsOutput").val(JSON.stringify(data));
+                            compareOutput();
+                        }).fail(function(jXHR, textStatus, errorCode) {
+                            console.log("Error getting RHS output: " + textStatus);
+                            showErrorMessage(errorCode);                            
+                        })
+                    }).fail( function(jXHR, textStatus, errorCode) {
+                        console.log("Error getting LHS output: " + textStatus);
+                        showErrorMessage(errorCode);
+                    });
+            }
+
+            function compareOutput() {
+                try { 
+                    let result = comparator.compareJsonString(jQuery('#lhsOutput').val(), jQuery('#rhsOutput').val());
+                    showJsonErrors('#lhsErrors', comparator.getLhsErrors());
+                    showJsonErrors('#rhsErrors', comparator.getRhsErrors());   
+                    if(result) {
+                        showSuccessMessage('<p style="color:green">LHS and RHS JSON Match</p>');                
+                    } else {
+                        showErrorMessage('<p style="color:red">LHS and RHS JSON Do not match!!</p>');                                    
+                    }
+                } catch(err) {
+                    showErrorMessage(err);
+                }
+            }
+
+            function hideJsonErrors() {
+                jQuery("#lhsErrors").hide();
+                jQuery("#lhsErrors").html('');
+                jQuery("#rhsErrors").hide();                
+                jQuery("#rhsErrors").html('');                
+            }
+
+            function showJsonErrors(ele, errorArr) {
+                if(errorArr.length > 0) {
+                    var htmlstr = 'Errors:<ul>';
+                    errorArr.forEach(element => {
+                        htmlstr += '<li>' + element + '</li>' ;
+                    });
+                    htmlstr += "</ul>";
+                    jQuery(ele).html(htmlstr);
+                    jQuery(ele).show();
+                }
+            }
+
+            function showSuccessMessage(msg) {
+                showMessage('success', msg);
+            }
+
+            function showErrorMessage(msg) {
+                showMessage('error', msg);
+            }
+
+            function showWarningMessage(msg) {
+                showMessage('warning', msg);
+            }
+
+            function showMessage(msgtype, mesg) {
+                hideAllMessage();
+                jQuery("#" + msgtype + "Msg").html(mesg);
+               jQuery("#" + msgtype + "Alert").show();
+            }
+
+            function hideAllMessage() {
+                jQuery("#errorAlert").hide();
+                jQuery("#warningAlert").hide();
+                jQuery("#successAlert").hide();
+            }
+
+        </script>
+    </head>
+
+    <body>
+            <div class="container">
+            <div class="navbar navbar-default navbar-static-top" role="navigation">
+              <div class="navbar-header">
+                <a class="navbar-brand" href="#/">JSON Comparator</a>
+              </div>
+              <div class="navbar-collapse collapse">
+                <ul class="nav navbar-nav">
+                  <li><a href="/">Home</a></li>
+                </ul>
+              </div>
+          </div>
+
+                <div id="errorAlert" class="alert alert-danger" role="alert">
+                        <button type="button" class="close" aria-label="Close" onclick="hideAllMessage()">
+                                <span aria-hidden="true">&times;</span>
+                        </button>
+                        <div id="errorMsg">Error</div>
+                    </div>
+                  <div id="warningAlert" class="alert alert-warning" role="alert">
+                        <button type="button" class="close" aria-label="Close" onclick="hideAllMessage()">
+                                <span aria-hidden="true">&times;</span>
+                        </button>              
+                        <div id="warningMsg">Warning</div>
+                    </div>
+                  <div id="successAlert" class="alert alert-success" role="alert">
+                        <button type="button" class="close" aria-label="Close" onclick="hideAllMessage()">
+                                <span aria-hidden="true">&times;</span>
+                        </button>              
+                        <div id="successMsg">Success</div>
+                    </div>
+                    
+            <table class="table table-compact" style="width:100%">
+              <tr><th>Compare A</th><th>Compare B</th></tr>
+              <tr><td>REST URL: <input type="text" id="lhsUrl" size="50"> </td><td>REST URL: <input type="text" id="rhsUrl" size="50"></td></tr>
+              <tr>
+                  <td><div>Headers: <button onclick="appendHeader('lhs')" class="btn btn-default"><span class="glyphicon glyphicon-plus"></span></button> &nbsp; <button onclick="removeHeader('lhs')" class="btn btn-default"><span class="glyphicon glyphicon-minus"></span></button> </div>
+                    <br/>
+                    <div>
+                      <ul id="lhsheaders">
+                          <li><input type="text" name="lhsheadername1" id="lhsheadername1" value="Accept"> : <input type="text" name="lhsheadervalue1" id="lhsheadervalue1" value="application/json"></li>
+                      </ul>
+                    </div>
+                    </td>
+                    <td><div>Headers: <button onclick="appendHeader('rhs')" class="btn btn-default"><span class="glyphicon glyphicon-plus"></span></button> &nbsp; <button onclick="removeHeader('rhs')" class="btn btn-default"><span class="glyphicon glyphicon-minus"></span></button></div>
+                        <br/>
+                    <div>
+                        <ul id="rhsheaders">
+                            <li><input type="text" name="rhsheadername1" id="rhsheadername1" value="Accept"> : <input type="text" name="rhsheadervalue1" id="rhsheadervalue1" value="application/json"></li>
+                        </ul>
+                    </div>
+                    </td>
+                </tr>
+              <tr><td colspan="2" style="text-align:center"><button onclick="compare()" class="btn btn-primary">Compare</button></td></tr>
+              <tr><td>Ouput</td><td>Output</td></tr>
+              <tr>
+                  <td><textarea name="lhsOutput" id="lhsOutput" rows="15" style="width:100%"></textarea></td>
+                  <td><textarea name="rhsOutput" id="rhsOutput" rows="15" style="width:100%"></textarea></td>
+                </tr>
+              <tr>
+                  <td><div id="lhsErrors"></div></td>
+                  <td><div id="rhsErrors"></div></td>
+                </tr>
+          </table>
+        </div>
+    </body>
+</html>
