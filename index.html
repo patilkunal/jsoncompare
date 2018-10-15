@@ -106,8 +106,10 @@
             function compareOutput() {
                 try { 
                     let result = comparator.compareJsonString(jQuery('#lhsOutput').val(), jQuery('#rhsOutput').val());
-                    showJsonErrors('#lhsErrors', comparator.getLhsErrors());
-                    showJsonErrors('#rhsErrors', comparator.getRhsErrors());   
+					let lhserrors = comparator.getLhsErrors();
+					let rhserrors = comparator.getRhsErrors()
+                    showJsonErrors('#lhsErrors', lhserrors);
+                    showJsonErrors('#rhsErrors', rhserrors);   
                     if(result) {
                         showSuccessMessage('<p style="color:green">LHS and RHS JSON Match</p>');                
                     } else {
@@ -217,7 +219,7 @@
                     </div>
                     </td>
                 </tr>
-              <tr><td colspan="2" style="text-align:center"><button onclick="compare()" class="btn btn-primary">Get Data &amp; Compare</button> &nbsp; &nbsp; <button onclick="compareOutput()" class="btn btn-primary">Compare JSON</button></td></tr>
+              <tr><td colspan="2" style="text-align:center"><button onclick="compare()" class="btn btn-primary">Get Data &amp; Compare</button> &nbsp; &nbsp; <button onclick="compareOutput()" class="btn btn-primary">Compare JSON</button> &nbsp; &nbsp; <button onclick="hideAllMessage()" class="btn btn-default">Clear messages</button></td></tr>
               <tr><td>Ouput</td><td>Output</td></tr>
               <tr>
                   <td><textarea name="lhsOutput" id="lhsOutput" rows="15" style="width:100%"></textarea></td>

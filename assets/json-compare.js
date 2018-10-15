@@ -7,6 +7,7 @@ class JsonComparator {
         this.rhsErrors = new Array();
         this.lhsXpath = new Array();
         this.rhsXpath = new Array();
+		this.isEqual = false;
     }
     
     getLhsErrors() {
@@ -35,7 +36,6 @@ class JsonComparator {
         this.lhsXpath.length = 0;
         this.rhsXpath.length = 0;
 
-        let isEqual = false;
         let lhsRoot = null;
         let rhsRoot = null;
         if (lhsJson != '' && rhsJson != '') {
@@ -45,27 +45,26 @@ class JsonComparator {
         if (lhsRoot != null && rhsRoot != null) {
             this.lhsXpath.push("root");
             this.rhsXpath.push("root");
-            if (isEqual = this.isSameType(lhsRoot, rhsRoot)) {
+            if (this.isEqual = this.isSameType(lhsRoot, rhsRoot)) {
                 if (jQuery.isArray(lhsRoot) && jQuery.isArray(rhsRoot)) {
-                    isEqual = this.compareAsArray(lhsRoot, rhsRoot);
+                    this.isEqual = this.compareAsArray(lhsRoot, rhsRoot);
                 }
                 else if (this.isObject(lhsRoot) && this.isObject(rhsRoot)) {
-                    isEqual = this.compareAsObject(lhsRoot, rhsRoot);
+                    this.isEqual = this.compareAsObject(lhsRoot, rhsRoot);
                 }
             }
         } else {
             throw new Error("Error parsing JSON");
         }
-        return isEqual;
+        return (this.rhsErrors.length == 0 && this.lhsErrors.length == 0);
     }
 
     compareAsArray(lhsArr, rhsArr) {
         let lhsCount = 0;
         let rhsCount = 0;
-        let isEqual = true;
-        isEqual = this.validateArrayTypes(lhsArr, this.lhsXpath, this.lhsErrors);
-        if(isEqual) {
-            isEqual = this.validateArrayTypes(rhsArr, this.rhsXpath, this.rhsErrors);
+        this.isEqual = this.validateArrayTypes(lhsArr, this.lhsXpath, this.lhsErrors);
+        if(this.isEqual) {
+            this.isEqual = this.validateArrayTypes(rhsArr, this.rhsXpath, this.rhsErrors);
         }
         if(this.isObject(lhsArr[0]) && this.isObject(rhsArr[0])) {
             //Do we want to compare arrays to it's min length?
@@ -74,8 +73,8 @@ class JsonComparator {
             for(let i=0;  (i < len); i++) {
                 this.lhsXpath.push("[" + i + "]");
                 this.rhsXpath.push("[" + i + "]");
-                isEqual = this.compareAsObject(lhsArr[i], rhsArr[i]);
-                if(!isEqual) {
+                this.isEqual = this.compareAsObject(lhsArr[i], rhsArr[i]);
+                if(!this.isEqual) {
                     this.lhsErrors.push("Mismatch objects at: " + this.formatXpath(this.lhsXpath));
                     this.rhsErrors.push("Mismatch objects at: " + this.formatXpath(this.rhsXpath));
                 }
@@ -84,11 +83,10 @@ class JsonComparator {
             }
         } 
         //no need to compare arrays of primitive types
-        return isEqual;
+        return this.isEqual;
     }
 
     validateArrayTypes(arr, xpath, errors) {
-        let isEqual = true
         let count = 0;
         let hasOnlyObjects = this.isObject(arr[0]);
         arr.forEach(obj => {
@@ -96,24 +94,23 @@ class JsonComparator {
             if(hasOnlyObjects) {
                 if(! this.isObject(obj) ) {
                     //error
-                    isEqual = false;
+                    this.isEqual = false;
                     errors.push("Found mix values of object and primitive types at " + this.formatXpath(xpath));
                 }                
             } else {
                 if(this.isObject(obj)) {
                     //error
-                    isEqual = false;
+                    this.isEqual = false;
                     errors.push("Found mix values of object and primitive types at " + this.formatXpath(xpath));
                 }
             }
             xpath.pop();
             count++;
         });
-        return isEqual;
+        return this.isEqual;
     }
 
     compareAsObject(lhsObj, rhsObj) {
-        let isEqual = true;
         
         let lhsProperties = Object.getOwnPropertyNames(lhsObj);
         let rhsProperties = Object.getOwnPropertyNames(rhsObj);
@@ -122,7 +119,7 @@ class JsonComparator {
             this.lhsXpath.push(prop);
             if(rhsProperties.findIndex( rkey => { return rkey ==  prop}) == -1) {
                 //we found property missing in RHS
-                isEqual = false;
+                this.isEqual = false;
                 this.rhsErrors.push("Missing property: " + this.formatXpath(this.lhsXpath));
             }
             this.lhsXpath.pop()
@@ -131,7 +128,7 @@ class JsonComparator {
         rhsProperties.forEach(prop => {
             this.rhsXpath.push(prop);
             if(lhsProperties.findIndex( lkey => { return prop ==  lkey}) == -1) {
-                isEqual = false;
+                this.isEqual = false;
                 this.lhsErrors.push("Missing property: " + this.formatXpath(this.rhsXpath));
             }
             this.rhsXpath.pop()
@@ -142,14 +139,16 @@ class JsonComparator {
             this.rhsXpath.push(ele);
             let lhsEle = lhsObj[ele];
             let rhsEle = rhsObj[ele];
-            if(isEqual = this.isSameType(lhsEle, rhsEle)) {
+			this.isEqual = this.isSameType(lhsEle, rhsEle)
+            if(this.isEqual) {
                 if (jQuery.isArray(lhsEle) && jQuery.isArray(rhsEle)) {
-                    isEqual = this.compareAsArray(lhsEle, rhsEle);
+                    this.isEqual = this.compareAsArray(lhsEle, rhsEle);
                 }
                 else if (this.isObject(lhsEle) && this.isObject(rhsEle)) {
-                    isEqual = this.compareAsObject(lhsEle, rhsEle);
+                    this.isEqual = this.compareAsObject(lhsEle, rhsEle);
                 }                        
             } else {
+				this.isEqual = false;
                 this.lhsErrors.push(this.formatXpath(this.lhsXpath) + " property type (" + typeof(lhsEle) + " and " + typeof(rhsEle) + ") do not match.");
                 this.rhsErrors.push(this.formatXpath(this.rhsXpath) + " property type (" + typeof(rhsEle) + " and " + typeof(lhsEle) + ") do not match.");
             }
@@ -158,7 +157,7 @@ class JsonComparator {
             this.rhsXpath.pop();
         });
 
-        return isEqual;
+        return (this.rhsErrors.length == 0 && this.lhsErrors.length == 0);
     }
 
     isValidJSON(str) {
