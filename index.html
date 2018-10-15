@@ -49,11 +49,15 @@
             }
 
             function getLhsHeaders() {
-                return this.getHeaders('rhs');
+                let headers =  this.getHeaders('lhs');
+				headers['Access-Control-Allow-Origin'] = '*';
+				return headers;
             }
 
             function getRhsHeaders() {
-                return this.getHeaders('rhs');
+                let headers =  this.getHeaders('rhs');
+				headers['Access-Control-Allow-Origin'] = '*';
+				return headers;
             }
 
             function getHeaders(prefix) {
@@ -77,7 +81,7 @@
                         headers: lhsHeaders,
                         method: 'GET',
                         crossDomain: true,
-                        dataType: 'json'
+                        dataType: 'jsonp'
                     }).done(function(data) {
                         jQuery("#lhsOutput").val(JSON.stringify(data));
                         jQuery.ajax({
@@ -85,17 +89,17 @@
                             url: rhsUrl, 
                             headers: rhsHeaders,
                             crossDomain: true,
-                            dataType: 'json'
+                            dataType: 'jsonp'
                         }).done(function(data) {
                             jQuery("#rhsOutput").val(JSON.stringify(data));
                             compareOutput();
-                        }).fail(function(jXHR, textStatus, errorCode) {
+                        }).error(function(jXHR, textStatus, errorCode) {
                             console.log("Error getting RHS output: " + textStatus);
-                            showErrorMessage(errorCode);                            
+                            showErrorMessage(errorCode + ':' + jXHR.status);
                         })
-                    }).fail( function(jXHR, textStatus, errorCode) {
+                    }).error( function(jXHR, textStatus, errorCode) {
                         console.log("Error getting LHS output: " + textStatus);
-                        showErrorMessage(errorCode);
+                        showErrorMessage(errorCode + ':' + jXHR.status);
                     });
             }
 
@@ -213,7 +217,7 @@
                     </div>
                     </td>
                 </tr>
-              <tr><td colspan="2" style="text-align:center"><button onclick="compare()" class="btn btn-primary">Compare</button></td></tr>
+              <tr><td colspan="2" style="text-align:center"><button onclick="compare()" class="btn btn-primary">Get Data &amp; Compare</button> &nbsp; &nbsp; <button onclick="compareOutput()" class="btn btn-primary">Compare JSON</button></td></tr>
               <tr><td>Ouput</td><td>Output</td></tr>
               <tr>
                   <td><textarea name="lhsOutput" id="lhsOutput" rows="15" style="width:100%"></textarea></td>
