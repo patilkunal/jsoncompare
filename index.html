@@ -5,12 +5,15 @@
         <title>REST API JSON Comparator</title>
         
         <link rel="stylesheet" href="assets/css/bootstrap.css">
+		<style type="text/css">
+		.top-buffer { margin-top:10px; }		
+		</style>
 
         <script src="assets/js/jquery/jquery.js"></script>
         <script src="assets/js/bootstrap/bootstrap.js"></script>
         <script src="assets/json-compare.js"></script>
         <script type="text/javascript">
-            var comparator = new JsonComparator();
+            var comparator = new JsonComparator(false);
             $(document).ready(function(){
                 hideAllMessage();
                 hideJsonErrors();
@@ -38,7 +41,7 @@
                 let headers = this.getHeaders(whichone);
                 let count = Object.getOwnPropertyNames(headers).length;
                 count ++;
-                jQuery("#" + whichone + "headers").append('<li id="' + whichone + 'header' + count + '"><input type="text" name="' + whichone + 'headername' + count + '" id="' + whichone + 'headername' + count + '" value="header' + count + '"> : <input type="text" name="' + whichone + 'headervalue' + count + '" id="' + whichone + 'headervalue' + count + '" value="value' + count + '"></li>');
+                jQuery("#" + whichone + "headers").append('<li id="' + whichone + 'header' + count + '"><input size="6" type="text" name="' + whichone + 'headername' + count + '" id="' + whichone + 'headername' + count + '" value="header' + count + '"> : <input type="text" name="' + whichone + 'headervalue' + count + '" id="' + whichone + 'headervalue' + count + '" value="value' + count + '"></li>');
                 console.log("Added header element " + "#" + whichone + "header" + count);
             }
 
@@ -50,13 +53,11 @@
 
             function getLhsHeaders() {
                 let headers =  this.getHeaders('lhs');
-				headers['Access-Control-Allow-Origin'] = '*';
 				return headers;
             }
 
             function getRhsHeaders() {
                 let headers =  this.getHeaders('rhs');
-				headers['Access-Control-Allow-Origin'] = '*';
 				return headers;
             }
 
@@ -72,6 +73,10 @@
                     valuetextobj = jQuery.find("#" + prefix + "headervalue" + count)[0];                    
                 }
                 console.log(headers);
+                //Common headers needed for cross domain call
+				headers['Access-Control-Allow-Origin'] = '*';
+				headers['Access-Control-Allow-Methods'] = 'GET, HEAD';
+				headers['Access-Control-Allow-Headers'] = 'Authorization';
                 return headers;
             }
 
@@ -81,7 +86,7 @@
                         headers: lhsHeaders,
                         method: 'GET',
                         crossDomain: true,
-                        dataType: 'jsonp'
+                        dataType: 'json'
                     }).done(function(data) {
                         jQuery("#lhsOutput").val(JSON.stringify(data));
                         jQuery.ajax({
@@ -89,7 +94,7 @@
                             url: rhsUrl, 
                             headers: rhsHeaders,
                             crossDomain: true,
-                            dataType: 'jsonp'
+                            dataType: 'json'
                         }).done(function(data) {
                             jQuery("#rhsOutput").val(JSON.stringify(data));
                             compareOutput();
@@ -105,6 +110,8 @@
 
             function compareOutput() {
                 try { 
+                    hideJsonErrors();
+                    hideAllMessage();
                     let result = comparator.compareJsonString(jQuery('#lhsOutput').val(), jQuery('#rhsOutput').val());
 					let lhserrors = comparator.getLhsErrors();
 					let rhserrors = comparator.getRhsErrors()
@@ -167,7 +174,7 @@
     </head>
 
     <body>
-            <div class="container">
+        <div class="container">
             <div class="navbar navbar-default navbar-static-top" role="navigation">
               <div class="navbar-header">
                 <a class="navbar-brand" href="#/">JSON Comparator</a>
@@ -177,7 +184,7 @@
                   <li><a href="/">Home</a></li>
                 </ul>
               </div>
-          </div>
+            </div>
 
                 <div id="errorAlert" class="alert alert-danger" role="alert">
                         <button type="button" class="close" aria-label="Close" onclick="hideAllMessage()">
@@ -197,39 +204,115 @@
                         </button>              
                         <div id="successMsg">Success</div>
                     </div>
-                    
-            <table class="table table-compact" style="width:100%">
-              <tr><th>Compare A</th><th>Compare B</th></tr>
-              <tr><td>REST URL: <input type="text" id="lhsUrl" size="50"> </td><td>REST URL: <input type="text" id="rhsUrl" size="50"></td></tr>
-              <tr>
-                  <td><div>Headers: <button onclick="appendHeader('lhs')" class="btn btn-default"><span class="glyphicon glyphicon-plus"></span></button> &nbsp; <button onclick="removeHeader('lhs')" class="btn btn-default"><span class="glyphicon glyphicon-minus"></span></button> </div>
-                    <br/>
-                    <div>
-                      <ul id="lhsheaders">
-                          <li><input type="text" name="lhsheadername1" id="lhsheadername1" value="Accept"> : <input type="text" name="lhsheadervalue1" id="lhsheadervalue1" value="application/json"></li>
-                      </ul>
+                    <!--
+            <div class="row">
+				  <div class="col-md-6">
+					<div class="panel panel-default">
+					<div class="panel-heading"><b>Compare LHS</b></div>
+					<div class="panel-body">
+						<div class="row">
+							<div class="col-md-3">REST Url</div>
+							<div class="col-md-9"><input type="text" id="lhsUrl" style="width:100%"></div>
+						</div>
+						<div class="row top-buffer">
+							<div class="col-md-3">Headers</div>
+							<div class="col-md-9">
+								<button onclick="appendHeader('lhs')" class="btn btn-default btn-xs"><span class="glyphicon glyphicon-plus"></span></button> &nbsp; 
+								<button onclick="removeHeader('lhs')" class="btn btn-default btn-xs"><span class="glyphicon glyphicon-minus"></span></button>
+							</div>
+						</div>
+						<div class="row top-buffer">
+							<div class="col-md-3">&nbsp;</div>
+							<div class="col-md-9">
+								<ul id="lhsheaders">
+								  <li><input name="lhsheadername1" id="lhsheadername1" value="Accept" size="6"> : <input type="text" name="lhsheadervalue1" id="lhsheadervalue1" value="application/json"></li>
+								</ul>
+							</div>
+						</div>
+					</div>
+					</div>
+				  </div>
+				  <div class="col-md-6">
+					<div class="panel panel-default">
+					<div class="panel-heading"><b>Compare RHS</b></div>
+					<div class="panel-body">
+						<div class="row">
+							<div class="col-md-3">REST Url</div>
+							<div class="col-md-9"><input type="text" id="rhsUrl" style="width:100%"></div>
+						</div>
+						<div class="row top-buffer">
+							<div class="col-md-3">Headers</div>
+							<div class="col-md-9">
+								<button onclick="appendHeader('rhs')" class="btn btn-default btn-xs"><span class="glyphicon glyphicon-plus"></span></button> &nbsp; 
+								<button onclick="removeHeader('rhs')" class="btn btn-default btn-xs"><span class="glyphicon glyphicon-minus"></span></button>
+							</div>
+						</div>
+						<div class="row top-buffer">
+							<div class="col-md-3">&nbsp;</div>
+							<div class="col-md-9">
+								<ul id="rhsheaders">
+								  <li><input name="rhsheadername1" id="rhsheadername1" value="Accept" size="5"> : <input type="text" name="rhsheadervalue1" id="rhsheadervalue1" value="application/json"></li>
+								</ul>
+							</div>
+						</div>
+					</div>
+					</div>
+				  </div>
+			</div>			
+            <div class="row">
+				  <div class="col-md-12" style="text-align: center">
+                        <button onclick="compare()" class="btn btn-primary">Get Data &amp; Compare</button> &nbsp; &nbsp; 
+                        <button onclick="hideAllMessage()" class="btn btn-default">Clear messages</button>                      
+                  </div>
+            </div>
+            -->
+            <div class="row top-buffer">
+            </div>
+            <div class="row">
+                <div class="col-md-6">
+                  <div class="panel panel-default">
+                  <div class="panel-heading"><b>LHS Output</b></div>
+                  <div class="panel-body">
+                    <textarea name="lhsOutput" id="lhsOutput" rows="15" style="width:100%"></textarea>
+                  </div>
+                </div>
+                </div>
+                <div class="col-md-6">
+                  <div class="panel panel-default">
+                  <div class="panel-heading"><b>RHS Output</b></div>
+                  <div class="panel-body">
+                    <textarea name="rhsOutput" id="rhsOutput" rows="15" style="width:100%"></textarea>
+                  </div>
+                </div>
+                </div>
+            </div>
+
+            <div class="row">
+                    <div class="col-md-12" style="text-align: center">
+                          <button onclick="compareOutput()" class="btn btn-primary">Compare JSON</button> &nbsp; &nbsp; 
+                          <button onclick="hideAllMessage(); hideJsonErrors();" class="btn btn-default">Clear messages</button>                      
                     </div>
-                    </td>
-                    <td><div>Headers: <button onclick="appendHeader('rhs')" class="btn btn-default"><span class="glyphicon glyphicon-plus"></span></button> &nbsp; <button onclick="removeHeader('rhs')" class="btn btn-default"><span class="glyphicon glyphicon-minus"></span></button></div>
-                        <br/>
-                    <div>
-                        <ul id="rhsheaders">
-                            <li><input type="text" name="rhsheadername1" id="rhsheadername1" value="Accept"> : <input type="text" name="rhsheadervalue1" id="rhsheadervalue1" value="application/json"></li>
-                        </ul>
+              </div>
+                  
+            <div class="row top-buffer">
+                <div class="col-md-6">
+                      <div class="panel panel-default">
+                      <div class="panel-heading"><b>LHS Errors</b></div>
+                      <div class="panel-body">
+                            <div id="lhsErrors"></div>
+                      </div>
                     </div>
-                    </td>
-                </tr>
-              <tr><td colspan="2" style="text-align:center"><button onclick="compare()" class="btn btn-primary">Get Data &amp; Compare</button> &nbsp; &nbsp; <button onclick="compareOutput()" class="btn btn-primary">Compare JSON</button> &nbsp; &nbsp; <button onclick="hideAllMessage()" class="btn btn-default">Clear messages</button></td></tr>
-              <tr><td>Ouput</td><td>Output</td></tr>
-              <tr>
-                  <td><textarea name="lhsOutput" id="lhsOutput" rows="15" style="width:100%"></textarea></td>
-                  <td><textarea name="rhsOutput" id="rhsOutput" rows="15" style="width:100%"></textarea></td>
-                </tr>
-              <tr>
-                  <td><div id="lhsErrors"></div></td>
-                  <td><div id="rhsErrors"></div></td>
-                </tr>
-          </table>
+                    </div>
+                    <div class="col-md-6">
+                      <div class="panel panel-default">
+                      <div class="panel-heading"><b>RHS Errors</b></div>
+                      <div class="panel-body">
+                            <div id="rhsErrors"></div>
+                      </div>
+                    </div>
+                </div>
+            </div>
+                          
         </div>
     </body>
 </html>

@@ -149,8 +149,8 @@ class JsonComparator {
                 }                        
             } else {
 				this.isEqual = false;
-                this.lhsErrors.push(this.formatXpath(this.lhsXpath) + " property type (" + typeof(lhsEle) + " and " + typeof(rhsEle) + ") do not match.");
-                this.rhsErrors.push(this.formatXpath(this.rhsXpath) + " property type (" + typeof(rhsEle) + " and " + typeof(lhsEle) + ") do not match.");
+                this.lhsErrors.push(this.formatXpath(this.lhsXpath) + " property type (" + this.getType(lhsEle) + " and " + this.getType(rhsEle) + ") do not match.");
+                this.rhsErrors.push(this.formatXpath(this.rhsXpath) + " property type (" + this.getType(rhsEle) + " and " + this.getType(lhsEle) + ") do not match.");
             }
             
             this.lhsXpath.pop();
@@ -158,6 +158,12 @@ class JsonComparator {
         });
 
         return (this.rhsErrors.length == 0 && this.lhsErrors.length == 0);
+    }
+
+    getType(ele) {
+        if(ele === null) { return "null"}
+        else if(jQuery.isArray(ele)) { return 'Array'; }
+        else { return typeof(ele); }
     }
 
     isValidJSON(str) {
@@ -174,17 +180,19 @@ class JsonComparator {
         let same = false;
         same = (lhsObj == null) && (rhsObj == null);
         if (!same) {
-            same = ((this.isObject(lhsObj) && this.isObject(rhsObj)) ||
+            same = (
+                (this.isArray(lhsObj) && this.isArray(rhsObj)) ||
+                (this.isObject(lhsObj) && this.isObject(rhsObj)) ||
                 (this.isNumber(lhsObj) && this.isNumber(rhsObj)) ||
                 (this.isString(lhsObj) && this.isString(rhsObj)) ||
-                (this.isBoolean(lhsObj) && this.isBoolean(rhsObj))
+                (this.isBoolean(lhsObj) && this.isBoolean(rhsObj) )
             );
         }
         return same;
     }
     
     isObject(obj) {
-        return (obj != null) && (typeof (obj) === 'object');
+        return (obj != null) && jQuery.isPlainObject(obj);
     }
     
     isNumber(obj) {
